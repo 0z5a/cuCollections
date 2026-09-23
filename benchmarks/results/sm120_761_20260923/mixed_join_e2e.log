@@ -1,0 +1,5 @@
+{"check": "mixed_join_correctness", "pairs": 5, "semi_rows": [0, 1, 2, 4]}
+{"join": "mixed_inner_join", "rows_per_side": 1048576, "median_ms": 0.9605088271200657, "min_ms": 0.9388159960508347, "max_ms": 0.9907595813274384, "repetitions": 10}
+{"join": "mixed_left_semi_join", "rows_per_side": 1048576, "median_ms": 0.5800426006317139, "min_ms": 0.57215616106987, "max_ms": 0.604577362537384, "repetitions": 10}
+{"join": "mixed_inner_join", "rows_per_side": 4194304, "median_ms": 1.7869854345917702, "min_ms": 1.7749043181538582, "max_ms": 1.8213875591754913, "repetitions": 10}
+{"join": "mixed_left_semi_join", "rows_per_side": 4194304, "median_ms": 1.7438139766454697, "min_ms": 1.7271582037210464, "max_ms": 1.755204051733017, "repetitions": 10}
