@@ -2,7 +2,7 @@
 
 ## Result
 
-`blocked_reproduction`: current cuCO `dev` builds and its standalone `static_multiset` insert/count/retrieve path passes on SM120. The historical [mixed-join issue](https://github.com/NVIDIA/cuCollections/issues/761) requires the cuDF consumer path; this 0z5a environment has no preinstalled cuDF library, and the installed CMake 3.22.1 cannot configure current cuCO's RAPIDS CMake 4 requirement. No cuDF mixed-join E2E, current spill regression, or production speedup is claimed. The issue and [follow-up #847](https://github.com/NVIDIA/cuCollections/issues/847) are closed.
+`consumer_e2e_pass_without_reproduced_regression`: current cuCO `dev` builds and its standalone `static_multiset` insert/count/retrieve path passes on SM120. A separate isolated `0z5a-ptx/cudf` environment now runs the [pylibcudf mixed-join consumer API](mixed_join_e2e.py) end to end on the same RTX 5090. Both inner and semi joins return the expected rows. The installed cuDF 26.8.1 wheel is precompiled, so its embedded cuCO revision is not established by this test and its timings are not a comparison against the fixed cuCO `dev` SHA. No current spill regression or production speedup is claimed. The historical [issue #761](https://github.com/NVIDIA/cuCollections/issues/761) and [follow-up #847](https://github.com/NVIDIA/cuCollections/issues/847) are closed.
 
 ## Provenance and checks
 
@@ -18,6 +18,17 @@
 
 Speedup is larger-capacity latency divided by smaller-capacity latency. Intervals resample the 24 pairs with a fixed seed and describe within-run variability only. Neither probe shows a stable difference. This only tests a simple cuCO count workload; the historical report explicitly states that its mixed-join slowdown did not reproduce in standalone cuCO benchmarks.
 
-## Gate for further work
+## cuDF mixed-join consumer E2E
 
-Run the current cuDF mixed-join benchmark and correctness fixture in an existing compatible 0z5a environment, record its pinned cuCO SHA and output count, then compare a minimal candidate only if the current regression and spill traffic reproduce. No optimization candidate was created from this standalone result.
+- New isolated `/home/gongji/0z5a-work/0z5a-ptx/cudf` environment; `cudf-cu13`, `pylibcudf-cu13`, and `libcudf-cu13` 26.8.1 from PyPI wheels. All 33 transferred dependency wheels passed [SHA256 verification](cudf-wheel-sha256.txt). The original `/home/gongji/0z5a` environment was unchanged.
+- [Harness](mixed_join_e2e.py) checks a mixed equality-key plus `left.value < right.value` predicate: five expected inner-join pairs and four expected semi-join rows. Both passed on GPU 4. [Raw log](mixed_join_e2e.log).
+- Inputs below contain unique int32 keys on each side in shuffled order and random int32 predicate values. Each timing includes the pylibcudf API call, hash-table construction, output allocation, and GPU synchronization; Arrow conversion is outside the timed region. Two warmups preceded ten repetitions.
+
+| Consumer operation | Rows per side | Median (ms) | Min–max (ms) | Compared speedup |
+| --- | ---: | ---: | ---: | ---: |
+| `mixed_inner_join` | 1,048,576 | 0.961 | 0.939–0.991 | N/A — no candidate |
+| `mixed_left_semi_join` | 1,048,576 | 0.580 | 0.572–0.605 | N/A — no candidate |
+| `mixed_inner_join` | 4,194,304 | 1.787 | 1.775–1.821 | N/A — no candidate |
+| `mixed_left_semi_join` | 4,194,304 | 1.744 | 1.727–1.755 | N/A — no candidate |
+
+The consumer run verifies actual mixed-join execution and correctness on SM120. Since the cuDF wheel's cuCO SHA is unknown, it does not prove that the standalone cuCO snapshot has the same production latency. No optimization candidate was created from the capacity probe's 0.989–1.013× paired medians.
